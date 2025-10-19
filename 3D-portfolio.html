@@ -642,7 +642,7 @@
 
 
         renderer.domElement.addEventListener('click', onPick);
-        renderer.domElement.addEventListener('touchend', onPick);
+        renderer.domElement.addEventListener('touchend', (e) => { onPick(); }, { passive: true });
 
         // --- Resize ---
         addEventListener('resize', () => {
