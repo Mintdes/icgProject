@@ -26,6 +26,8 @@
         document.body.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 0.5, 0);
+        controls.enableDamping = true;
 
         // ✅ Directional Light ที่สร้างเงา
         const light = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -53,7 +55,7 @@
         .setDataType(THREE.UnsignedByteType) // ใช้ข้อมูลแบบ UnsignedByte
         .load('https://mintdes.github.io/icgProject/little_paris_eiffel_tower_2k.hdr', function(texture) {
             texture.mapping = THREE.EquirectangularReflectionMapping;
-            // scene.background = texture
+            scene.background = texture
             scene.environment = texture;
         });
 
@@ -142,12 +144,13 @@
                 console.error('Error loading glTF:', error);
             }
         );
-
+        
+        let backhome;
         const gltfLoaderBack = new THREE.GLTFLoader();
         gltfLoaderBack.load(
             'https://mintdes.github.io/icgProject/backhome.glb', // เปลี่ยนเป็นพาธ/URL ของโมเดลของคุณ
             (gltf) => {
-            const backhome = gltf.scene || gltf.scenes[0];
+            backhome = gltf.scene || gltf.scenes[0];
             backhome.traverse((node) => {
                 if (node.isMesh && node.material && node.material.isMeshStandardMaterial) {
                     node.material.envMapIntensity = 0.0;
@@ -159,7 +162,7 @@
             backhome.scale.set(0.17, 0.17, 0.17);
             backhome.rotation.x = Math.PI/2 ;
             backhome.rotation.z = -Math.PI/2 ;
-            scene.add(backhome);
+            addObj(backhome, backhome.position, "Backhome");
             },
             undefined,
             (error) => {
@@ -167,10 +170,11 @@
             }
         );
 
+        let backhome2;
         gltfLoaderBack.load(
             'https://mintdes.github.io/icgProject/backhome.glb', // เปลี่ยนเป็นพาธ/URL ของโมเดลของคุณ
             (gltf) => {
-            const backhome2 = gltf.scene || gltf.scenes[0];
+            backhome2 = gltf.scene || gltf.scenes[0];
             backhome2.traverse((node) => {
                 if (node.isMesh && node.material && node.material.isMeshStandardMaterial) {
                     node.material.envMapIntensity = 0.0;
@@ -182,7 +186,7 @@
             backhome2.scale.set(0.17, 0.17, 0.17);
             backhome2.rotation.x = Math.PI/2 ;
             backhome2.rotation.z = -Math.PI ;
-            scene.add(backhome2);
+            addObj(backhome2, backhome2.position, "Back2");
             },
             undefined,
             (error) => {
@@ -190,35 +194,36 @@
             }
         );
 
+        let press; // ประกาศไว้บนสุด ให้ global ในสคริปต์นี้
         const gltfLoader3 = new THREE.GLTFLoader();
         gltfLoader3.load(
-            'https://mintdes.github.io/icgProject/myartpress.glb', // เปลี่ยนเป็นพาธ/URL ของโมเดลของคุณ
-            (gltf) => {
-            const press = gltf.scene || gltf.scenes[0];
+        'https://mintdes.github.io/icgProject/myartpress.glb',
+        (gltf) => {
+            press = gltf.scene || gltf.scenes[0];
             press.traverse((node) => {
-                if (node.isMesh && node.material && node.material.isMeshStandardMaterial) {
-                    node.material.envMapIntensity = 0.0;
-                    node.material.needsUpdate = true;
-                    node.castShadow = true;
-                    node.receiveShadow = true;
-                }
+            if (node.isMesh && node.material && node.material.isMeshStandardMaterial) {
+                node.material.envMapIntensity = 0.0;
+                node.material.needsUpdate = true;
+                node.castShadow = true;
+                node.receiveShadow = true;
+            }
             });
             press.position.set(2.5, 0.5, 4.5);
-            press.rotation.x = Math.PI/2 ;
+            press.rotation.x = Math.PI / 2;
             press.scale.set(0.4, 0.4, 0.4);
-            scene.add(press);
-            },
-            undefined,
-            (error) => {
-                console.error('Error loading glTF:', error);
-            }
+            // scene.add(press);
+            addObj(press, press.position, "Press");
+        },
+        undefined,
+        (error) => console.error('Error loading glTF:', error)
         );
 
+        let creditpress;
         const gltfLoader4 = new THREE.GLTFLoader();
         gltfLoader4.load(
             'https://mintdes.github.io/icgProject/creditpress.glb', // เปลี่ยนเป็นพาธ/URL ของโมเดลของคุณ
             (gltf) => {
-            const creditpress = gltf.scene || gltf.scenes[0];
+            creditpress = gltf.scene || gltf.scenes[0];
             creditpress.traverse((node) => {
                 if (node.isMesh && node.material && node.material.isMeshStandardMaterial) {
                     node.material.envMapIntensity = 0.0;
@@ -230,7 +235,8 @@
             creditpress.position.set(4, 0.5, 4.5);
             creditpress.rotation.x = Math.PI/2 ;
             creditpress.scale.set(0.4, 0.4, 0.4);
-            scene.add(creditpress);
+            addObj(creditpress, creditpress.position, "CreditPress");
+            
             },
             undefined,
             (error) => {
@@ -294,7 +300,7 @@
             car.traverse((node) => {
                 if (node.isMesh) {
                 node.castShadow = true;
-                node.receiveShadow = true;
+                
                 }
             });
             car.position.set(2, 0, 0.5);
@@ -308,16 +314,37 @@
             }
         );
 
+                function generateToneTexture(levels = 3) {
+        const size = 256;
+        const data = new Uint8Array(size * 3);
+        for (let i = 0; i < size; i++) {
+            const tone = Math.floor(i / (256 / levels)) * (256 / levels);
+            data[i * 3] = data[i * 3 + 1] = data[i * 3 + 2] = tone;
+        }
+        const texture = new THREE.DataTexture(data, size, 1, THREE.RGBFormat);
+        texture.needsUpdate = true;
+        return texture;
+        }
+
         const elfElygltfLoader = new THREE.GLTFLoader();
         elfElygltfLoader.load(
             'https://mintdes.github.io/icgProject/elysia_maid_honkai_impact.glb', // เปลี่ยนเป็นพาธ/URL ของโมเดลของคุณ
             (gltf) => {
             const elfEly = gltf.scene || gltf.scenes[0];
             elfEly.traverse((node) => {
-                if (node.isMesh && node.material && node.material.isMeshStandardMaterial) {
-                    node.material.envMapIntensity = 0.0;
-                    node.material.needsUpdate = true;
-                    node.castShadow = true;
+            if (node.isMesh) {
+                // สร้าง toon material แทน StandardMaterial เดิม
+                const toonMat = new THREE.MeshToonMaterial({
+                    color: node.material.color || new THREE.Color(0xffffff),
+                });
+
+                // ถ้ามี texture base color จาก GLB ให้คงไว้
+                if (node.material.map) toonMat.map = node.material.map;
+
+                // ปรับความเข้มของเงา (ยิ่งน้อย = เงาคม)
+                toonMat.gradientMap = generateToneTexture(4); // 4 ขั้นเงา
+                node.material = toonMat;
+                node.castShadow = true;
                 }
             });
             elfEly.position.set(0, 0, 0);
@@ -330,28 +357,33 @@
             }
         );
 
-          // GLTF Loader — ตัวอย่างการโหลดไฟล์ models/scene.gltf
+        // GLTF Loader — ตัวอย่างการโหลดไฟล์ models/scene.gltf
         const gltfLoader5 = new THREE.GLTFLoader();
-        gltfLoader5.load(
-            'https://mintdes.github.io/icgProject/shiba.glb', // เปลี่ยนเป็นพาธ/URL ของโมเดลของคุณ
-            (gltf) => {
-            const shiba = gltf.scene || gltf.scenes[0];
+        gltfLoader5.load('https://mintdes.github.io/icgProject/shiba.glb', (gltf) => {
+            const shiba = gltf.scene;
             shiba.traverse((node) => {
-                if (node.isMesh) {
-                    node.castShadow = true;
-                    node.receiveShadow = true;
+            if (node.isMesh) {
+                // สร้าง toon material แทน StandardMaterial เดิม
+                const toonMat = new THREE.MeshToonMaterial({
+                    color: node.material.color || new THREE.Color(0xffffff),
+                });
+
+                // ถ้ามี texture base color จาก GLB ให้คงไว้
+                if (node.material.map) toonMat.map = node.material.map;
+
+                // ปรับความเข้มของเงา (ยิ่งน้อย = เงาคม)
+                toonMat.gradientMap = generateToneTexture(4); // 4 ขั้นเงา
+                node.material = toonMat;
+                node.castShadow = true;
+                node.receiveShadow = true;
                 }
             });
-            shiba.position.set(-0.8, 0.35, 0.2);
-            shiba.scale.set(0.35, 0.35, 0.35);
-            shiba.rotation.y = 70;
-            scene.add(shiba);
-            },
-            undefined,
-            (error) => {
-            console.error('Error loading glTF:', error);
-            }
-        );
+
+                shiba.position.set(-0.8, 0.35, 0.2);
+                shiba.scale.set(0.35, 0.35, 0.35);
+                shiba.rotation.y = 70;
+                scene.add(shiba);
+            });
 
         const gltfLoader8 = new THREE.GLTFLoader();
         gltfLoader8.load(
@@ -554,31 +586,110 @@
             }
         );
 
-        // create an AudioListener and add it to the camera
-        const listener = new THREE.AudioListener();
-        camera.add(listener);
+        const clickable = [];
 
-        // create a global audio source
-        const sound = new THREE.Audio(listener);
-        // load a sound and set it as the Audio object's buffer
-        const audioLoader = new THREE.AudioLoader();
-        audioLoader.load( 'https://mintdes.github.io/icgProject/phutatchaicover.mp3', function( buffer ) {
-            sound.setBuffer( buffer );
-            sound.setLoop( true );
-            sound.setVolume(1);
-            sound.play();
+        function addObj(mesh, pos, name) {
+            mesh.position.copy(pos);
+            mesh.name = name;
+            scene.add(mesh);
+            clickable.push(mesh);
+            return mesh;
+        }
+
+        // --- พรีเซ็ตตำแหน่งกล้องต่อวัตถุ ---
+        const VIEWS = {
+            Press: { pos: new THREE.Vector3(9, 4, -4), tar: new THREE.Vector3(4, 2, -3) },
+            Backhome: { pos: new THREE.Vector3(0, 3, 9), tar: new THREE.Vector3(0, 0, 0) },
+            CreditPress: { pos: new THREE.Vector3(4, 4.5, -7), tar: new THREE.Vector3(3, 5, -4.5) },
+            Back2: { pos: new THREE.Vector3(0, 3, 9), tar: new THREE.Vector3(0, 0, 0) }
+        };
+
+        // --- Raycaster + คลิกเพื่อสลับมุม ---
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+
+        function setPointer(e) {
+            const r = renderer.domElement.getBoundingClientRect();
+            const x = (e.clientX ?? e.touches[0].clientX) - r.left;
+            const y = (e.clientY ?? e.touches[0].clientY) - r.top;
+            pointer.x = (x / r.width) * 2 - 1;
+            pointer.y = -(y / r.height) * 2 + 1;
+        }
+
+        let activeView = null;
+        let isMoving = false;
+        let moveProgress = 0;
+
+        function onPick(e) {
+            setPointer(e);
+            raycaster.setFromCamera(pointer, camera);
+            const hit = raycaster.intersectObjects(clickable, true)[0];
+            if (!hit) return;
+
+            // 🔍 หา parent ที่มีชื่ออยู่ใน VIEWS
+            let obj = hit.object;
+            while (obj && !VIEWS[obj.name]) {
+                obj = obj.parent;
+            }
+            if (!obj) return;
+
+            const view = VIEWS[obj.name];
+            activeView = view;
+            isMoving = true;
+            moveProgress = 0;
+            controls.enabled = false;
+        }
+
+
+        renderer.domElement.addEventListener('click', onPick);
+        renderer.domElement.addEventListener('touchend', onPick, { passive: true });
+
+        // --- Resize ---
+        addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
         });
 
+        // --- Render Loop ---
+        function loop() {
+            requestAnimationFrame(loop);
+
+            if (isMoving && activeView) {
+                moveProgress += 0.03;
+
+                // เลื่อนตำแหน่งและเป้าหมายกล้องเข้าหา view ใหม่
+                camera.position.lerp(activeView.pos, 0.05);
+                controls.target.lerp(activeView.tar, 0.05);
+                controls.update();
+
+                // ตรวจสอบว่ากล้องมาถึงแล้วหรือยัง
+                const dist = camera.position.distanceTo(activeView.pos);
+                const focusDist = controls.target.distanceTo(activeView.tar);
+                if (dist < 0.05 && focusDist < 0.05) {
+                    // ถึงแล้ว ปลดล็อก
+                    isMoving = false;
+                    activeView = null;
+                    controls.enabled = true; // กลับมาให้หมุนกล้องได้
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        loop();
+
         // ✅ render loop
-        function animate(t) {
+        /*function animate(t) {
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
-        animate(0);
+        animate(0);*/
 
-        window.addEventListener('keydown', (event) => {
-
+        /*window.addEventListener('resize', (event) => {
+            camera.updateProjectionMatrix();
         });
+        */
     </script>
 </body>
 </html>
