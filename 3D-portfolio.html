@@ -48,6 +48,14 @@
         scene.add(spotLight);
         scene.add(spotLight.target);
 
+        // Spot Light ส่องไปที่ส่วนของเครดิต
+        const spotLight2 = new THREE.SpotLight(0xffffff, 1, 10, Math.PI / 8);
+        spotLight2.position.set(3, 6, -6); // หลอดไฟสูงจากเรา 6 เมตร
+        spotLight2.target.position.set(2.78, 5.1, -4);
+        spotLight2.castShadow = true;
+        scene.add(spotLight2);
+        scene.add(spotLight2.target);
+
         // ✅ Ambient Light เล็กน้อยให้สว่างรวม
         const ambient = new THREE.AmbientLight(0x505050);
         scene.add(ambient);
@@ -230,6 +238,25 @@
                 credit.rotation.x = Math.PI/2 ;
                 credit.rotation.z = -Math.PI ;
                 scene.add(credit);
+            },
+            undefined, (error) => { console.error('Error loading glTF:', error);
+            }
+        );
+
+        gltfLoader.load('https://mintdes.github.io/icgProject/creditlist.glb', (gltf) => {
+            const creditlist = gltf.scene || gltf.scenes[0]; // รายชื่อเครดิตโมเดล
+            creditlist.traverse((node) => {
+                if (node.isMesh && node.material && node.material.isMeshStandardMaterial) {
+                    node.material.envMapIntensity = 0.0;
+                    node.material.needsUpdate = true;
+                    node.castShadow = true;
+                }
+            });
+                creditlist.position.set(2.8, 5, -4.4);
+                creditlist.scale.set(0.18, 0.18, 0.18);
+                creditlist.rotation.x = Math.PI/2 ;
+                creditlist.rotation.z = -Math.PI ;
+                scene.add(creditlist);
             },
             undefined, (error) => { console.error('Error loading glTF:', error);
             }
